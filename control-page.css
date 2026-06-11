@@ -1,0 +1,77 @@
+/* ============================================================
+   Control del Robot — layout de página
+   Reusa: wf.css (tokens), console.css (widgets), dashboard.css
+   ============================================================ */
+
+.cp {
+  padding: 18px 20px 26px;
+  display: flex; flex-direction: column; gap: 14px;
+  max-width: 1480px; margin: 0 auto; width: 100%;
+  box-sizing: border-box; min-width: 0;
+}
+
+/* ---------- encabezado: identidad + KPIs ---------- */
+.cp-head {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.55fr) repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.cp-id-card { min-width: 0; }
+.cp-kpi {
+  display: flex; flex-direction: column; gap: 8px;
+  justify-content: center; padding: 13px 15px; min-width: 0;
+}
+.cp-kpi-top { display: flex; align-items: center; gap: 9px; }
+.cp-kpi-top .stat-ico { width: 30px; height: 30px; border-radius: 8px; }
+.cp-kpi-top .stat-ico svg { width: 17px; height: 17px; }
+.cp-kpi .k { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
+.cp-kpi .v { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.cp-kpi .v small { font-size: 13px; color: var(--ink-faint); font-weight: 600; letter-spacing: 0; }
+
+/* ---------- cuerpo 60/40 ---------- */
+.cp-grid {
+  display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 14px; align-items: start;
+}
+.cp-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* iluminación 2×2 */
+.light-grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* vista superior | puerta */
+.cp-duo { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; align-items: stretch; }
+
+/* cámara */
+.cam-frame {
+  position: relative; aspect-ratio: 16 / 9;
+  background: var(--surface-2); display: grid; place-items: center;
+  border-top: 1px solid var(--line);
+}
+.cam-frame image-slot { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cam-tag { position: absolute; display: flex; gap: 7px; pointer-events: none; z-index: 2; }
+.cam-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,.55); color: #fff; border-radius: 999px;
+  font-size: 11px; font-weight: 600; padding: 4px 10px;
+}
+.cam-chip svg { width: 13px; height: 13px; }
+
+/* sensores */
+.cp-us-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 13px; }
+.cp .us-divider { height: 1px; background: var(--line); margin: 14px 0; }
+
+/* títulos de tarjeta sin quiebre en columnas angostas */
+.cp .card-t { white-space: nowrap; }
+
+/* responsive según ancho del cuerpo (container dbbody en .mc-body) */
+@container dbbody (max-width: 1240px) {
+  .cp-head { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-head .cp-id-card { grid-column: 1 / -1; }
+}
+@container dbbody (max-width: 1020px) {
+  .cp-grid { grid-template-columns: 1fr; }
+}
+@container dbbody (max-width: 600px) {
+  .cp-duo { grid-template-columns: 1fr; }
+  .cp-head { grid-template-columns: 1fr; }
+}

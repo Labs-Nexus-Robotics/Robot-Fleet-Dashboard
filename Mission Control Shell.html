@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus — Mission Control · Shell</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="wf.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="console.css">
+  <link rel="stylesheet" href="control-page.css">
+  <link rel="stylesheet" href="shell-pages.css">
+  <style>
+    /* ============================================================
+       Mission Control — application shell
+       Dark global rail · contextual panel · header
+       (body is intentionally empty for now)
+       ============================================================ */
+
+    .mc {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      height: 100vh;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ---------------------------------------------------------
+       Global dark rail — always dark, independent of theme
+       --------------------------------------------------------- */
+    .mc-rail {
+      --r-bg: #131314;
+      --r-bg-2: #1e1e20;
+      --r-line: #2a2a2c;
+      --r-ink: #87847f;
+      --r-ink-hi: #f3f1ee;
+      background: var(--r-bg);
+      border-right: 1px solid #000;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 12px 9px 14px;
+      gap: 4px;
+      z-index: 40;
+      width: 64px;
+      transition: width .3s cubic-bezier(.4,0,.2,1);
+    }
+    .mc.rail-open .mc-rail { width: 232px; }
+
+    /* brand / menu header inside rail */
+    .rail-top {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 8px; min-height: 38px;
+    }
+    .mc-brand {
+      width: 38px; height: 38px; border-radius: 11px;
+      background: var(--accent);
+      display: grid; place-items: center;
+      color: #fff; flex-shrink: 0; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(249,115,22,0.4);
+    }
+    .mc-brand svg { width: 22px; height: 22px; }
+    .rail-word {
+      font-family: var(--font-ui); font-weight: 700; font-size: 15px;
+      letter-spacing: -0.01em; color: var(--r-ink-hi); white-space: nowrap;
+      opacity: 0; width: 0; overflow: hidden; transition: opacity .2s;
+    }
+    .mc.rail-open .rail-word { opacity: 1; width: auto; }
+    .rail-menu {
+      margin-left: auto; width: 34px; height: 34px; border-radius: 9px;
+      display: grid; place-items: center; cursor: pointer; flex-shrink: 0;
+      background: none; border: 1px solid transparent; color: var(--r-ink);
+      transition: color .14s, background .14s;
+    }
+    .rail-menu:hover { background: var(--r-bg-2); color: var(--r-ink-hi); }
+    .rail-menu svg { width: 19px; height: 19px; }
+    .mc:not(.rail-open) .rail-menu { display: none; }
+    .rail-div { height: 1px; background: var(--r-line); margin: 4px 6px 8px; }
+
+    .rail-btn {
+      position: relative;
+      width: 46px; height: 46px; border-radius: 13px;
+      display: flex; align-items: center; gap: 13px;
+      justify-content: center; padding: 0; cursor: pointer;
+      color: var(--r-ink); border: 1px solid transparent; background: none;
+      transition: color .14s, background .14s, border-color .14s;
+      font-family: var(--font-ui);
+    }
+    .mc.rail-open .rail-btn {
+      width: 100%; height: 42px; justify-content: flex-start; padding: 0 12px;
+    }
+    .rail-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .rail-btn .rlabel {
+      font-size: 13.5px; font-weight: 600; white-space: nowrap;
+      opacity: 0; width: 0; overflow: hidden; transition: opacity .18s;
+    }
+    .mc.rail-open .rail-btn .rlabel { opacity: 1; width: auto; }
+    .rail-btn:hover { background: var(--r-bg-2); color: var(--r-ink-hi); }
+    .rail-btn.active {
+      background: rgba(249,115,22,0.16);
+      color: var(--accent);
+      border-color: rgba(249,115,22,0.4);
+    }
+    .rail-btn.active::before {
+      content: ''; position: absolute; left: -13px; top: 50%;
+      transform: translateY(-50%);
+      width: 3px; height: 22px; border-radius: 0 3px 3px 0;
+      background: var(--accent);
+    }
+    .rail-btn .badge {
+      position: absolute; top: 5px; right: 6px;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      border-radius: 8px; background: var(--danger); color: #fff;
+      font-size: 9.5px; font-weight: 700; line-height: 16px; text-align: center;
+      border: 2px solid var(--r-bg);
+    }
+    .rail-btn .tip {
+      position: absolute; left: 56px; white-space: nowrap;
+      background: #000; color: #f3f1ee;
+      font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 8px;
+      opacity: 0; pointer-events: none; transform: translateX(-5px);
+      transition: opacity .14s, transform .14s; z-index: 60;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    }
+    .rail-btn:hover .tip { opacity: 1; transform: translateX(0); }
+    .mc.rail-open .rail-btn .tip { display: none; }
+    .rail-spacer { margin-top: auto; }
+    .rail-user {
+      display: flex; align-items: center; gap: 11px; padding: 6px;
+      margin-top: 6px; border-radius: 12px; cursor: pointer;
+    }
+    .mc.rail-open .rail-user:hover { background: var(--r-bg-2); }
+    .rail-ava {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg,#3a3a3d,#222);
+      border: 1px solid var(--r-line);
+      display: grid; place-items: center;
+      font-size: 12px; font-weight: 700; color: var(--r-ink-hi);
+    }
+    .rail-user-txt {
+      display: flex; flex-direction: column; min-width: 0;
+      opacity: 0; width: 0; overflow: hidden; transition: opacity .2s;
+    }
+    .mc.rail-open .rail-user-txt { opacity: 1; width: auto; }
+    .rail-user-name { font-size: 13px; font-weight: 600; color: var(--r-ink-hi); white-space: nowrap; }
+    .rail-user-role { font-size: 11px; color: var(--r-ink); white-space: nowrap; }
+
+    /* ---------------------------------------------------------
+       Right side: header on top, then [panel | body]
+       --------------------------------------------------------- */
+    .mc-right { display: grid; grid-template-rows: 60px 1fr; min-width: 0; min-height: 0; }
+
+    .mc-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 16px 0 10px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+      z-index: 20;
+    }
+    .hdr-toggle {
+      width: 38px; height: 38px; flex-shrink: 0;
+      display: grid; place-items: center;
+      border: 1px solid var(--line); background: var(--surface);
+      border-radius: 10px; cursor: pointer; color: var(--ink-soft);
+      transition: color .14s, border-color .14s, background .14s;
+    }
+    .hdr-toggle:hover { color: var(--ink); border-color: var(--line-strong); }
+    .hdr-toggle svg { width: 19px; height: 19px; transition: transform .28s cubic-bezier(.4,0,.2,1); }
+    .mc.collapsed .hdr-toggle svg { transform: scaleX(-1); }
+
+    .hdr-ctx { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .hdr-ctx-ico {
+      width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+      display: grid; place-items: center;
+      background: var(--accent-soft); color: var(--accent);
+    }
+    .hdr-ctx-ico svg { width: 18px; height: 18px; }
+    .hdr-ctx-txt { display: flex; flex-direction: column; min-width: 0; }
+    .hdr-ctx-t { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; white-space: nowrap; }
+    .hdr-ctx-s { font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; line-height: 1; white-space: nowrap; }
+    .hdr-tag {
+      font-family: var(--font-hand); font-size: 18px; color: var(--accent);
+      transform: rotate(-3deg); margin-left: 2px;
+    }
+
+    .hdr-spacer { flex: 1; }
+    .hdr-tools { display: flex; align-items: center; gap: 10px; }
+
+    /* body placeholder (empty for now) */
+    .mc-lower {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      min-height: 0; min-width: 0;
+    }
+
+    /* ---------------------------------------------------------
+       Contextual panel
+       --------------------------------------------------------- */
+    .mc-panel {
+      width: 264px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      overflow: hidden;
+      min-width: 0;
+      display: flex; flex-direction: column;
+      transition: width .3s cubic-bezier(.4,0,.2,1);
+    }
+    .mc.collapsed .mc-panel { width: 0; }
+    .mc.collapsed .mc-panel { border-right-color: transparent; }
+    .panel-inner {
+      width: 264px; flex-shrink: 0;
+      display: flex; flex-direction: column; min-height: 0;
+      opacity: 1; transition: opacity .2s;
+    }
+    .mc.collapsed .panel-inner { opacity: 0; }
+
+    .panel-head { padding: 16px 16px 12px; border-bottom: 1px solid var(--line); }
+    .panel-kick { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); }
+    .panel-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-top: 3px; display: flex; align-items: baseline; gap: 8px; }
+    .panel-title .ct { font-size: 12px; font-weight: 600; color: var(--ink-faint); }
+
+    .panel-search {
+      display: flex; align-items: center; gap: 8px;
+      margin: 12px 14px 4px;
+      border: 1px solid var(--line); background: var(--surface-2);
+      border-radius: 9px; padding: 8px 11px; color: var(--ink-faint);
+    }
+    .panel-search svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .panel-search input {
+      border: none; background: none; outline: none; width: 100%;
+      font-family: var(--font-ui); font-size: 13px; color: var(--ink);
+    }
+
+    .panel-scroll { overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 0; padding-bottom: 12px; }
+
+    .panel-sec { padding: 10px 12px 4px; }
+    .panel-label { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); padding: 4px 4px 8px; }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
+    .fchip {
+      font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+      padding: 5px 11px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft);
+      transition: all .13s;
+    }
+    .fchip:hover { border-color: var(--line-strong); }
+    .fchip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+
+    .robot-row {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 11px; border-radius: 10px; cursor: pointer;
+      border: 1px solid transparent; margin: 0 2px 2px;
+      transition: background .13s, border-color .13s;
+    }
+    .robot-row:hover { background: var(--surface-2); }
+    .robot-row.active { background: var(--accent-soft); border-color: var(--accent-line); }
+    .rr-led { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 7px currentColor; }
+    .rr-main { min-width: 0; flex: 1; }
+    .rr-id { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .rr-sub { font-size: 10.5px; color: var(--ink-faint); margin-top: 1px; }
+    .rr-bat { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+    .panel-foot { border-top: 1px solid var(--line); padding: 10px 12px; }
+    .panel-foot .wbtn { width: 100%; justify-content: flex-start; }
+
+    /* ---------------------------------------------------------
+       Body
+       --------------------------------------------------------- */
+    .mc-body {
+      overflow: auto; min-width: 0; min-height: 0;
+      background:
+        linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0 / 26px 26px,
+        linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0 / 26px 26px,
+        var(--bg);
+    }
+    .body-empty { display: grid; place-items: center; height: 100%; }
+    .body-hint {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      color: var(--ink-faint); text-align: center; padding: 40px;
+      border: 1.5px dashed var(--dash); border-radius: 16px;
+      background: color-mix(in srgb, var(--surface) 55%, transparent);
+    }
+    .body-hint svg { width: 34px; height: 34px; opacity: .65; }
+    .body-hint .bh-t { font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+    .body-hint .bh-s { font-size: 12.5px; max-width: 280px; line-height: 1.5; }
+
+    @media (max-width: 980px) { .hdr-tag { display: none; } }
+    @media (max-width: 720px) {
+      .mc-panel { width: 0; }
+      .hdr-ctx-s, .hdr-tag { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mc" id="shell">
+    <!-- dark rail  -->
+    <nav class="mc-rail" aria-label="Navegación global">
+      <div class="rail-top">
+        <div class="mc-brand" title="Nexus"></div>
+        <span class="rail-word">Nexus</span>
+        <button class="rail-menu" id="railToggle" title="Desplegar menú" aria-label="Desplegar menú"></button>
+      </div>
+      <div class="rail-div"></div>
+      <div id="railNav" style="display:flex;flex-direction:column;gap:4px"></div>
+      <div class="rail-spacer"></div>
+      <div class="rail-user" title="Operador">
+        <div class="rail-ava">OP</div>
+        <div class="rail-user-txt">
+          <span class="rail-user-name">Operador</span>
+          
+        </div>
+      </div>
+    </nav>
+
+    <!-- right side  -->
+    <div class="mc-right">
+      <!-- Header -->
+      <header class="mc-header">
+        <button class="hdr-toggle" id="toggle" title="Ocultar / mostrar panel" aria-label="Alternar panel"></button>
+        <div class="hdr-ctx">
+          <div class="hdr-ctx-ico" id="ctxIco"></div>
+          <div class="hdr-ctx-txt">
+            <span class="hdr-ctx-t" id="ctxTitle">Robots</span>
+            <span class="hdr-ctx-s" id="ctxSub">Flota · 12 unidades · 10 activas</span>
+          </div>
+          
+        </div>
+        <div class="hdr-spacer"></div>
+        <div class="hdr-tools">
+          <div class="wf-search">
+            <span id="hdrSearchIco"></span>
+            <input type="text" placeholder="Buscar…" aria-label="Buscar">
+          </div>
+          <div class="seg" id="langSeg">
+            <button class="active" data-lang="es">ES</button>
+            <button data-lang="en">EN</button>
+          </div>
+          <button class="icon-btn" id="themeBtn" title="Tema"></button>
+          <span class="live"><span class="dot"></span>En vivo</span>
+          <div class="avatar">OP</div>
+        </div>
+      </header>
+
+      <!-- contextual panel -->
+      <div class="mc-lower">
+        <aside class="mc-panel" aria-label="Panel contextual">
+          <div class="panel-inner">
+            <div class="panel-head">
+              <div class="panel-kick">Contexto</div>
+              <div class="panel-title">Flota <span class="ct">· 12</span></div>
+            </div>
+            <div class="panel-search">
+              <span id="panelSearchIco"></span>
+              <input type="text" placeholder="Filtrar robots…" aria-label="Filtrar robots">
+            </div>
+            <div class="panel-scroll">
+              <div class="panel-sec">
+                <div class="panel-label">Estado</div>
+                <div class="chip-row" id="filterChips"></div>
+              </div>
+              <div class="panel-sec">
+                <div class="panel-label">Unidades</div>
+                <div id="robotList"></div>
+              </div>
+            </div>
+            <div class="panel-foot">
+              <button class="wbtn ghost" id="assignBtn"><span id="assignIco"></span>Asignar misión</button>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Body -->
+        <main class="mc-body" id="bodyHost"></main>
+      </div>
+    </div>
+  </div>
+
+  <script src="icons.js"></script>
+  <script src="icons2.js"></script>
+  <script src="image-slot.js"></script>
+  <script src="console-widgets.js"></script>
+  <script src="control-page.js"></script>
+  <script src="dashboard-widgets.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="shell-pages.js"></script>
+  <script src="shell-pages2.js"></script>
+  <script>
+    const $ = (s, r = document) => r.querySelector(s);
+    const ic = (n) => (window.ICON && window.ICON[n]) || '';
+
+    /* ---- nav model ---- */
+    const NAV = [
+      { id: 'dashboard', icon: 'grid',     es: 'Dashboard' },
+      { id: 'control',   icon: 'joystick', es: 'Control del robot' },
+      { id: 'robots',    icon: 'fleet',    es: 'Flota de robots', badge: '3' },
+      { id: 'map',       icon: 'map',      es: 'Mapa' },
+      { id: 'alerts',    icon: 'bell',     es: 'Alertas', badge: '1' },
+      { id: 'history',   icon: 'history',  es: 'Historial' },
+      { id: 'settings',  icon: 'gear',     es: 'Configuración' },
+    ];
+    const CTX = {
+      dashboard: { ico: 'grid',     t: 'Dashboard',        s: 'Vista general del robot · RBT-204' },
+      control:   { ico: 'joystick', t: 'Control del robot', s: 'Teleoperación · RBT-204' },
+      robots:    { ico: 'fleet',    t: 'Flota de robots',   s: 'Flota · 12 unidades · 10 activas' },
+      map:       { ico: 'map',      t: 'Mapa',              s: 'Vista de operación en vivo' },
+      alerts:    { ico: 'bell',     t: 'Alertas',           s: '4 sin atender · 2 críticas' },
+      history:   { ico: 'history',  t: 'Historial',         s: 'Eventos y telemetría' },
+      settings:  { ico: 'gear',     t: 'Configuración',     s: 'Preferencias del sistema' },
+    };
+
+    const ROBOTS = [
+      ['RBT-204', 'ok',     78, 'Navegando · Ala A',  true],
+      ['RBT-118', 'warn',   29, 'Volviendo a base',   false],
+      ['RBT-330', 'ok',     92, 'Manual · Pasillo 5', false],
+      ['RBT-076', 'danger', 12, 'Detenido · Fallo',   false],
+      ['RBT-455', 'ok',     64, 'Navegando · Muelle', false],
+      ['RBT-512', 'ok',     88, 'En carga',           false],
+    ];
+    const LED = { ok: 'var(--ok)', warn: 'var(--warn)', danger: 'var(--danger)' };
+
+    let active = 'dashboard';
+
+    /* ---- body router ---- */
+    function renderBody() {
+      const host = $('#bodyHost');
+      window.Dashboard.unmount();
+      window.ControlPage.unmount();
+      window.ShellPages.unmount();
+      if (active === 'dashboard') { window.Dashboard.mount(host); return; }
+      if (active === 'control') { window.ControlPage.mount(host); return; }
+      if (window.ShellPages.has(active)) { window.ShellPages.mount(host, active); return; }
+      const c = CTX[active];
+      host.innerHTML = `<div class="body-empty"><div class="body-hint">
+        <span>${ic(c.ico)}</span>
+        <span class="bh-t">${c.t}</span>
+        <span class="bh-s">Esta sección se construirá en un siguiente paso.</span>
+      </div></div>`;
+    }
+
+    /* hooks para el dashboard (botón “Más →”, selector de robot) */
+    window.MC = {
+      go(section) { active = section; renderRail(); paintCtx(); renderBody(); },
+      setRobot(id) { CTX.dashboard.s = `Vista general del robot · ${id}`; paintCtx(); },
+    };
+
+    /* ---- render rail ---- */
+    function renderRail() {
+      $('#railNav').innerHTML = NAV.map(n => `
+        <button class="rail-btn ${active === n.id ? 'active' : ''}" data-nav="${n.id}">
+          ${ic(n.icon)}
+          <span class="rlabel">${n.es}</span>
+          ${n.badge ? `<span class="badge">${n.badge}</span>` : ''}
+          <span class="tip">${n.es}</span>
+        </button>`).join('');
+    }
+
+    /* ---- render panel ---- */
+    const FILTERS = ['Todos', 'Activos', 'Atención', 'Carga'];
+    function renderPanel() {
+      $('#filterChips').innerHTML = FILTERS.map((f, i) =>
+        `<button class="fchip ${i === 0 ? 'on' : ''}" data-filter="${f}">${f}</button>`).join('');
+      $('#robotList').innerHTML = ROBOTS.map(r => `
+        <div class="robot-row ${r[4] ? 'active' : ''}" data-pick="${r[0]}">
+          <span class="rr-led" style="color:${LED[r[1]]};background:${LED[r[1]]}"></span>
+          <div class="rr-main">
+            <div class="rr-id">${r[0]}</div>
+            <div class="rr-sub">${r[3]}</div>
+          </div>
+          <span class="rr-bat">${r[2]}%</span>
+        </div>`).join('');
+    }
+
+    /* ---- static icons ---- */
+    function paintIcons() {
+      $('.mc-brand').innerHTML = ic('bot');
+      $('#railToggle').innerHTML = ic('list');
+      $('#toggle').innerHTML = ic('panelLeft');
+      $('#themeBtn').innerHTML = ic(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon');
+      $('#hdrSearchIco').innerHTML = ic('search');
+      $('#panelSearchIco').innerHTML = ic('search');
+      $('#assignIco').innerHTML = ic('plus');
+      paintCtx();
+    }
+    function paintCtx() {
+      const c = CTX[active];
+      $('#ctxIco').innerHTML = ic(c.ico);
+      $('#ctxTitle').textContent = c.t;
+      $('#ctxSub').textContent = c.s;
+    }
+
+    /* ---- collapse (persisted) ---- */
+    const shell = $('#shell');
+    if (localStorage.getItem('mc_collapsed') === '1') shell.classList.add('collapsed');
+    $('#toggle').addEventListener('click', () => {
+      const on = shell.classList.toggle('collapsed');
+      localStorage.setItem('mc_collapsed', on ? '1' : '0');
+    });
+
+    /* ---- rail expand (persisted) ---- */
+    if (localStorage.getItem('mc_rail_open') === '1') shell.classList.add('rail-open');
+    function toggleRail() {
+      const on = shell.classList.toggle('rail-open');
+      localStorage.setItem('mc_rail_open', on ? '1' : '0');
+    }
+    $('#railToggle').addEventListener('click', toggleRail);
+    $('.mc-brand').addEventListener('click', toggleRail);
+
+    /* ---- theme (persisted) ---- */
+    const savedTheme = localStorage.getItem('mc_theme');
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    $('#themeBtn').addEventListener('click', () => {
+      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem('mc_theme', next);
+      $('#themeBtn').innerHTML = ic(next === 'dark' ? 'sun' : 'moon');
+    });
+
+    /* ---- interactions ---- */
+    document.addEventListener('click', (e) => {
+      const navBtn = e.target.closest('[data-nav]');
+      if (navBtn) { active = navBtn.dataset.nav; renderRail(); paintCtx(); renderBody(); return; }
+      const chip = e.target.closest('[data-filter]');
+      if (chip) {
+        $('#filterChips').querySelectorAll('.fchip').forEach(c => c.classList.remove('on'));
+        chip.classList.add('on'); return;
+      }
+      const row = e.target.closest('[data-pick]');
+      if (row) {
+        $('#robotList').querySelectorAll('.robot-row').forEach(c => c.classList.remove('active'));
+        row.classList.add('active'); return;
+      }
+    });
+    $('#langSeg').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-lang]'); if (!b) return;
+      $('#langSeg').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    });
+
+    /* ---- init ---- */
+    renderRail();
+    renderPanel();
+    paintIcons();
+    renderBody();
+  </script>
+</body>
+</html>

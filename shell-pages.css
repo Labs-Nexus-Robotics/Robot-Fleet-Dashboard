@@ -1,0 +1,59 @@
+/* ============================================================
+   Páginas del shell (Flota · Mapa · Alertas · Historial · Config)
+   Reusa tokens y widgets de wf.css
+   ============================================================ */
+
+.sp {
+  padding: 18px 20px 26px;
+  display: flex; flex-direction: column; gap: 14px;
+  max-width: 1480px; margin: 0 auto; width: 100%;
+  box-sizing: border-box; min-width: 0;
+}
+
+/* encabezado de página */
+.sp-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.sp-title { font-size: 19px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.15; }
+.sp-sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 3px; }
+.sp-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* grids de página */
+.sp-grid-fleet { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+.sp-grid-map { display: grid; grid-template-columns: 250px minmax(0,1fr); gap: 14px; align-items: start; }
+.sp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+
+/* fila de robot clicable (mapa) */
+.sp .lrow { cursor: pointer; }
+.sp .lrow.sel { background: var(--accent-soft); }
+
+/* alerta resuelta */
+.alert.resolved { opacity: .55; }
+.alert.resolved .alert-ico { background: var(--ok-soft); color: var(--ok); }
+
+/* gráfico de barras */
+.sp-bars { height: 130px; display: flex; gap: 5px; align-items: flex-end; }
+.sp-bars i {
+  flex: 1; border-radius: 4px 4px 0 0; display: block;
+  transition: height .35s cubic-bezier(.4,0,.2,1);
+}
+
+/* campos de configuración */
+.sp-field { display: flex; flex-direction: column; gap: 6px; }
+.sp-field .fk { font-size: 11px; font-weight: 600; color: var(--ink-faint); }
+.sp-field .fv {
+  border: 1px solid var(--line); background: var(--surface-2);
+  border-radius: 8px; padding: 9px 11px; font-size: 13px;
+}
+
+/* tabla flota: ocultar columnas en angosto */
+@container dbbody (max-width: 1100px) {
+  .sp-grid-fleet { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .sp .tbl .hide-md { display: none; }
+}
+@container dbbody (max-width: 980px) {
+  .sp-grid-map { grid-template-columns: 1fr; }
+  .sp-grid-2 { grid-template-columns: 1fr; }
+}
+@container dbbody (max-width: 640px) {
+  .sp-grid-fleet { grid-template-columns: 1fr; }
+  .sp .tbl .hide-sm { display: none; }
+}
